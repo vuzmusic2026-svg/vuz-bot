@@ -5,30 +5,32 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- НАСТРОЙКИ ---
-TOKEN = "ТВОЙ_ТОКЕН_ТЕЛЕГРАМ"
-GENAI_API_KEY = "ТВОЙ_КЛЮЧ_GEMINI"
-CHANNEL_ID = "@ТВОЙ_КАНАЛ" # или ID через -100
+# --- НАСТРОЙКИ VUŽ ---
+TOKEN = "7547183068:AAELv0I96L46H-qE6N5_vC_U_5P_9_T6V7w"
+GENAI_API_KEY = "AIzaSyD..." # Брат, здесь используй свой ключ Gemini
+CHANNEL_ID = "-1002302324707"
 
+# Настройка нейросети
 genai.configure(api_key=GENAI_API_KEY)
 model = genai.GenerativeModel("gemini-pro")
 
+# Инициализация бота и диспетчера
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 # --- КНОПКИ АДМИНКИ ---
 def get_admin_kb():
     buttons = [
-        [InlineKeyboardButton(text="📝 Сгенерировать пост", callback_query_data="gen_post")],
-        [InlineKeyboardButton(text="📊 Создать опрос", callback_query_data="admin_poll")],
-        [InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_query_data="delete_msg")]
+        [InlineKeyboardButton(text="📝 Сгенерировать пост", callback_data="gen_post")],
+        [InlineKeyboardButton(text="📊 Создать опрос", callback_data="admin_poll")],
+        [InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_data="delete_msg")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def get_post_kb():
     buttons = [
-        [InlineKeyboardButton(text="✅ Опубликовать", callback_query_data="confirm_post")],
-        [InlineKeyboardButton(text="❌ Отмена", callback_query_data="delete_msg")]
+        [InlineKeyboardButton(text="✅ Опубликовать", callback_data="confirm_post")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="delete_msg")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -55,7 +57,7 @@ async def start_gen_post(callback: CallbackQuery):
 @dp.callback_query(F.data == "confirm_post")
 async def confirm_post(callback: CallbackQuery):
     try:
-        # Извлекаем текст поста (все что после заголовка)
+        # Извлекаем текст поста
         post_text = callback.message.text.split("Вариант поста:")[1].strip()
         await bot.send_message(chat_id=CHANNEL_ID, text=post_text)
         await callback.answer("Готово! Пост улетел в канал.", show_alert=True)
@@ -89,6 +91,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
