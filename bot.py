@@ -22,19 +22,31 @@ async def send_welcome_post():
     )
     try:
         await bot.send_message(chat_id=CHANNEL_ID, text=text)
+        return True
     except Exception as e:
-        print(f"Ошибка при отправке в канал: {e}")
+        print(f"Ошибка: {e}")
+        return False
 
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
-    await message.answer("Брат, я на связи. Пост в канал должен был улететь!")
+    await message.answer("Брат, я в сети! Чтобы я выдал пост в канал, напиши мне команду /post")
+
+@dp.message(Command("post"))
+async def post_command(message: types.Message):
+    status = await send_welcome_post()
+    if status:
+        await message.answer("Пост улетел в канал! Проверяй, брат.")
+    else:
+        await message.answer("Не вышло. Проверь, добавил ли ты меня в админы канала @vuz_officeall")
 
 async def main():
+    # Пробуем отправить сразу при запуске
     await send_welcome_post()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
