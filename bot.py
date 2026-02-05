@@ -6,11 +6,12 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 # --- НАСТРОЙКИ VUŽ ---
-# Твой новый токен, который ты скинул
-TOKEN = "8549618830:AAGt4flgrDRSvnJVzmwp3qEYX53IMgaLXIk"
-# Брат, убедись, что твой ключ Gemini (AIza...) вставлен ниже полностью
-GENAI_API_KEY = "AIzaSyD..."
+# Твой НОВЫЙ токен после revoke
+TOKEN = "8549618830:AAEykK1AabSjxdFRXQeVy0PGlcvgl5W59jU"
+# Твой ID канала
 CHANNEL_ID = "-1002302324707"
+# Ключ Gemini (Брат, проверь, чтобы он был вставлен полностью внутри кавычек)
+GENAI_API_KEY = "AIzaSyD..."
 
 # Настройка нейросети
 genai.configure(api_key=GENAI_API_KEY)
@@ -59,11 +60,12 @@ async def start_gen_post(callback: CallbackQuery):
 @dp.callback_query(F.data == "confirm_post")
 async def confirm_post(callback: CallbackQuery):
     try:
-        # Извлекаем текст поста (все что после заголовка)
-        if "Вариант поста:" in callback.message.text:
-            post_text = callback.message.text.split("Вариант поста:")[1].strip()
+        # Извлекаем текст поста
+        msg_text = callback.message.text
+        if "Вариант поста:" in msg_text:
+            post_text = msg_text.split("Вариант поста:")[1].strip()
         else:
-            post_text = callback.message.text
+            post_text = msg_text
            
         await bot.send_message(chat_id=CHANNEL_ID, text=post_text)
         await callback.answer("Готово! Пост улетел в канал.", show_alert=True)
@@ -91,13 +93,15 @@ async def send_poll(callback: CallbackQuery):
 
 # --- ЗАПУСК ---
 async def main():
-    # Удаляем вебхуки, чтобы бот работал через polling
+    # Очистка очереди обновлений
     await bot.delete_webhook(drop_pending_updates=True)
     print("🚀 Шаг 2 активирован. Бот VUŽ в строю!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
+
 
 
 
