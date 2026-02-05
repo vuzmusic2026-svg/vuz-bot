@@ -10,13 +10,16 @@ logging.basicConfig(level=logging.INFO)
 
 # --- КАНФІГУРАЦЫЯ VUŽ ---
 TOKEN = "8549618830:AAEgt90rAH8A0KE2q7A5GMDRgePWJu_UR5w"
-# Выкарыстоўваем першы ключ, які ты даў
-GEMINI_KEY = "AIzaSyAXgQ9AaGjdc78LeFnnZQlKEJlgPZXPoOo"
+# Твае два ключы Gemini
+GEMINI_KEYS = [
+    "AIzaSyAXgQ9AaGjdc78LeFnnZQlKEJlgPZXPoOo",
+    "AIzaSyBEgwjck_QbsyLwREaN5aT0BSyROzBXsKc"
+]
 CHANNEL_ID = "@vuz_officeall"
 ADMIN_ID = 5650116892
 
-# Налада Gemini AI
-genai.configure(api_key=GEMINI_KEY)
+# Налада Gemini AI (выкарыстоўваем першы ключ па змаўчанні)
+genai.configure(api_key=GEMINI_KEYS[0])
 ai_model = genai.GenerativeModel('gemini-pro')
 
 bot = Bot(token=TOKEN)
@@ -72,7 +75,7 @@ def get_main_kb():
 # --- ЛОГІКА ІІ (GEMINI) ---
 async def ask_gemini(text):
     try:
-        prompt = f"Ты — афіцыйны ІІ-асістэнт праекта VUŽ. Ты размаўляеш па-беларуску. Ты добры і шчыры. Адказвай каротка на пытанне: {text}"
+        prompt = f"Ты — афіцыйны ІІ-асістэнт праекта VUŽ. Ты размаўляеш па-беларуску. Адказвай каротка і душэўна: {text}"
         res = ai_model.generate_content(prompt)
         return res.text
     except:
@@ -113,7 +116,8 @@ async def play_music(callback: types.CallbackQuery):
 async def socials_menu(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="TikTok", url="https://www.tiktok.com/@vuz_music"))
-    builder.row(types.InlineKeyboardButton(text="Telegram", url="https://t.me/vuz_officeall"))
+    builder.row(types.InlineKeyboardButton(text="Telegram канал", url="https://t.me/vuz_officeall"))
+    builder.row(types.InlineKeyboardButton(text="VK Відэа", url="https://vkvideo.ru/@club235220668"))
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu"))
     await callback.message.edit_text("Нашы сацыяльныя сеткі:", reply_markup=builder.as_markup())
 
@@ -122,6 +126,7 @@ async def platforms_menu(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="Яндэкс Музыка", url="https://music.yandex.ru/artist/4500355"))
     builder.row(types.InlineKeyboardButton(text="VK Музыка", url="https://vk.com/artist/3174360383775460208"))
+    builder.row(types.InlineKeyboardButton(text="Spotify", url="https://open.spotify.com/artist/5L1h0Dkj0n2j9u2D0K3UoB")) # Замяні на свой прамы лінк калі трэба
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu"))
     await callback.message.edit_text("Слухай нас на пляцоўках:", reply_markup=builder.as_markup())
 
@@ -132,7 +137,6 @@ async def video_menu(callback: types.CallbackQuery):
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu"))
     await callback.message.edit_text("Нашы відэа:", reply_markup=builder.as_markup())
 
-# --- УМНАЯ АДМІНКА І ІІ-АДКАЗЫ ---
 @dp.message(F.text)
 async def handle_msg(message: types.Message):
     if message.from_user.id == ADMIN_ID:
@@ -148,12 +152,12 @@ async def handle_msg(message: types.Message):
 async def post_now(callback: types.CallbackQuery):
     text = callback.message.reply_to_message.text
     await bot.send_message(chat_id=CHANNEL_ID, text=f"✨ **НОВАЕ АД VUŽ**\n\n{text}\n\n🐍 @vuz_officeall", parse_mode="Markdown")
-    await callback.answer("Гатова! Пост у канале.")
+    await callback.answer("Апублікавана!")
 
 @dp.callback_query(F.data == "ai_fix")
 async def ai_fix(callback: types.CallbackQuery):
     text = callback.message.reply_to_message.text
-    ai_text = await ask_gemini(f"Зрабі гэты тэкст для паста ў канал больш прыгожым і душэўным: {text}")
+    ai_text = await ask_gemini(f"Зрабі гэты тэкст для паста ў канал больш прыгожым: {text}")
     await bot.send_message(chat_id=CHANNEL_ID, text=f"✨ **VUŽ / НАТХНЕННЕ**\n\n{ai_text}\n\n🐍 @vuz_officeall", parse_mode="Markdown")
     await callback.answer("ІІ палепшыў і адправіў!")
 
@@ -167,6 +171,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
