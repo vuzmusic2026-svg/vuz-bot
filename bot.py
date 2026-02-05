@@ -1,22 +1,28 @@
 import asyncio
 import logging
+import google.generativeai as genai
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import Command
 
+# --- НАСТРОЙКИ ЛОГИРОВАНИЯ ---
 logging.basicConfig(level=logging.INFO)
 
-# --- КОНФИГ ---
+# --- КОНФИГ (ТВОИ КЛЮЧИ) ---
 TOKEN = "8549618830:AAEgt90rAH8A0KE2q7A5GMDRgePWJu_UR5w"
+GEMINI_KEY = "ТВОЙ_КЛЮЧ_GEMINI" # Брат, вставь сюда свой ключ Gemini API
 CHANNEL_ID = "@vuz_officeall"
 ADMIN_ID = 5650116892
+
+# Настройка Gemini
+genai.configure(api_key=GEMINI_KEY)
+model = genai.GenerativeModel('gemini-pro')
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# --- ТВОИ ТРЕКИ ---
-# Первый список (Я VUŽ)
-VUZ_TRACKS = [
+# --- БАЗА ТРЕКОВ (АЙДИ ИЗ ТВОЕГО СПИСКА) ---
+VUZ_ALBUM = [
     "CQACAgIAAxkBAANaaYPDdB0ye-3T-PtLWzDEqAKqVGEAAoiOAALKiyBIDjV3diI8Epo4BA",
     "CQACAgIAAxkBAANcaYPDjXgSRxmU5Tv1DdBi9SccEO4AAomOAALKiyBI3yex3ocT3xM4BA",
     "CQACAgIAAxkBAANeaYPDk2xLJfyVY3kyhYXGhBni3IoAAoqOAALKiyBItDD_0kAS1D04BA",
@@ -36,8 +42,7 @@ VUZ_TRACKS = [
     "CQACAgIAAyEFAATFiccMAAOlaXz1Hq-bon6PKsTqr8Ywn_htN9oAAoSYAAJi6OhL-urgEwn-mpM4BA"
 ]
 
-# Второй список (ЛЁС)
-LYOS_TRACKS = [
+LYOS_ALBUM = [
     "CQACAgIAAxkBAAN_aYPIVyDTU9-4yRSclGIQU1piBpAAAoqEAAICLaBKrUJpdqBTjs84BA",
     "CQACAgIAAxkBAAOBaYPIZ7VO9ruRzxPKB0Ktad0SWf0AAiCIAAJRfFBKTX-Cekk75a84BA",
     "CQACAgIAAxkBAAODaYPIcWoBJR1hnb2nPgFd2hEG5-YAAuuJAAIET3FKOaYFLyB-ufw4BA",
@@ -51,99 +56,101 @@ LYOS_TRACKS = [
     "CQACAgIAAxkBAAOTaYPKntTdt6cO34xf5wGvUCDko7EAAsyOAALKiyBIHLE2M-VdvU44BA"
 ]
 
-# --- МЕНЮ ---
-def get_main_menu():
+# --- КЛАВИАТУРЫ ---
+def main_menu():
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="💿 Альбомы", callback_data="sub_albums"))
-    builder.row(types.InlineKeyboardButton(text="📱 Соцсети", callback_data="sub_socials"))
-    builder.row(types.InlineKeyboardButton(text="🎬 Видео", callback_data="sub_video"))
-    builder.row(types.InlineKeyboardButton(text="🎧 Площадки", callback_data="sub_platforms"))
+    builder.row(types.InlineKeyboardButton(text="💿 Альбомы", callback_data="albums"))
+    builder.row(types.InlineKeyboardButton(text="📱 Соцсети", callback_data="socials"))
+    builder.row(types.InlineKeyboardButton(text="🎬 Видео", callback_data="video"))
+    builder.row(types.InlineKeyboardButton(text="🎧 Площадки", callback_data="platforms"))
     return builder.as_markup()
 
+# --- ОБРАБОТКА ИИ (GEMINI) ---
+async def get_ai_response(user_text):
+    try:
+        prompt = f"Ты — официальный ИИ-ассистент музыкального проекта VUŽ. Твой стиль: добрый, вдохновляющий, человечный. Ты помогаешь фанатам. Отвечай кратко, с любовью. Вопрос пользователя: {user_text}"
+        response = model.generate_content(prompt)
+        return response.text
+    except:
+        return "Брат, я всегда рядом. Слушай музыку сердца. ❤️"
+
+# --- ОБРАБОТЧИКИ ---
 @dp.message(Command("start"))
-async def start_handler(message: types.Message):
-    await message.answer("VUŽ 🐍\nВыбери раздел:", reply_markup=get_main_menu())
+async def start(message: types.Message):
+    await message.answer("Вітаем у свеце VUŽ 🐍\nСлухай музыку без абмежаванняў.", reply_markup=main_menu())
 
-@dp.callback_query(F.data == "sub_albums")
-async def process_albums(callback: types.CallbackQuery):
+@dp.callback_query(F.data == "albums")
+async def albums(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🐍 Альбом «Я VUŽ»", callback_data="menu_vuz"))
-    builder.row(types.InlineKeyboardButton(text="🌸 Альбом «Лёс»", callback_data="menu_lyos"))
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main"))
-    await callback.message.edit_text("Выбери альбом:", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="🐍 Я VUŽ", callback_data="vuz_album"))
+    builder.row(types.InlineKeyboardButton(text="🌸 ЛЁС", callback_data="lyos_album"))
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main"))
+    await callback.message.edit_text("Выбирай альбом:", reply_markup=builder.as_markup())
 
-@dp.callback_query(F.data == "menu_vuz")
-async def vuz_list(callback: types.CallbackQuery):
+@dp.callback_query(F.data.endswith("_album"))
+async def show_tracks(callback: types.CallbackQuery):
+    album_type = callback.data.split("_")[0]
+    tracks = VUZ_ALBUM if album_type == "vuz" else LYOS_ALBUM
     builder = InlineKeyboardBuilder()
-    for i, fid in enumerate(VUZ_TRACKS, 1):
-        builder.add(types.InlineKeyboardButton(text=f"Трек {i}", callback_data=f"vuz_{i-1}"))
+    for i, fid in enumerate(tracks, 1):
+        builder.add(types.InlineKeyboardButton(text=f"🎵 Трек {i}", callback_data=f"play_{album_type}_{i-1}"))
     builder.adjust(3)
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="sub_albums"))
-    await callback.message.edit_text("Альбом «Я VUŽ»:", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="albums"))
+    await callback.message.edit_text(f"Треки альбома {'Я VUŽ' if album_type == 'vuz' else 'ЛЁС'}:", reply_markup=builder.as_markup())
 
-@dp.callback_query(F.data == "menu_lyos")
-async def lyos_list(callback: types.CallbackQuery):
-    builder = InlineKeyboardBuilder()
-    for i, fid in enumerate(LYOS_TRACKS, 1):
-        builder.add(types.InlineKeyboardButton(text=f"Трек {i}", callback_data=f"lyos_{i-1}"))
-    builder.adjust(3)
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="sub_albums"))
-    await callback.message.edit_text("Альбом «Лёс»:", reply_markup=builder.as_markup())
-
-@dp.callback_query(F.data.startswith(("vuz_", "lyos_")))
-async def play_track(callback: types.CallbackQuery):
-    data = callback.data.split("_")
-    idx = int(data[1])
-    fid = VUZ_TRACKS[idx] if data[0] == "vuz" else LYOS_TRACKS[idx]
+@dp.callback_query(F.data.startswith("play_"))
+async def play(callback: types.CallbackQuery):
+    _, album, idx = callback.data.split("_")
+    fid = VUZ_ALBUM[int(idx)] if album == "vuz" else LYOS_ALBUM[int(idx)]
     await callback.message.answer_audio(audio=fid, caption="VUŽ @vuz_officeall")
 
-@dp.callback_query(F.data == "sub_socials")
-async def process_socials(callback: types.CallbackQuery):
+@dp.callback_query(F.data == "socials")
+async def socials(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="TikTok", url="https://www.tiktok.com/@vuz_music"))
     builder.row(types.InlineKeyboardButton(text="Telegram", url="https://t.me/vuz_officeall"))
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main"))
-    await callback.message.edit_text("Соцсети:", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main"))
+    await callback.message.edit_text("Нашы сацыяльныя сеткі:", reply_markup=builder.as_markup())
 
-@dp.callback_query(F.data == "sub_platforms")
-async def process_platforms(callback: types.CallbackQuery):
+@dp.callback_query(F.data == "platforms")
+async def platforms(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="Яндекс", url="https://music.yandex.ru/artist/4500355"))
-    builder.row(types.InlineKeyboardButton(text="VK", url="https://vk.com/artist/3174360383775460208"))
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main"))
-    await callback.message.edit_text("Площадки:", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="Яндекс Музыка", url="https://music.yandex.ru/artist/4500355"))
+    builder.row(types.InlineKeyboardButton(text="VK Музыка", url="https://vk.com/artist/3174360383775460208"))
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main"))
+    await callback.message.edit_text("Слухай нас на пляцоўках:", reply_markup=builder.as_markup())
 
-@dp.callback_query(F.data == "sub_video")
-async def process_video(callback: types.CallbackQuery):
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="YouTube", url="https://youtube.com/@vuz_official"))
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main"))
-    await callback.message.edit_text("Видео:", reply_markup=builder.as_markup())
+# --- УМНОЕ ОБЩЕНИЕ (ИИ) И АДМИНКА ---
+@dp.message(F.text)
+async def handle_message(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(text="✅ В КАНАЛ", callback_data="post"))
+        builder.row(types.InlineKeyboardButton(text="🤖 ОТВЕТ ИИ", callback_data="ai_answer"))
+        await message.reply(f"Брат, что делаем с этим текстом?", reply_markup=builder.as_markup())
+    else:
+        # Обычный пользователь получает ответ от Gemini
+        response = await get_ai_response(message.text)
+        await message.answer(response)
 
-@dp.message(F.text, F.from_user.id == ADMIN_ID)
-async def admin_handler(message: types.Message):
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="✅ В канал", callback_data="post_it"))
-    builder.row(types.InlineKeyboardButton(text="❌ Отмена", callback_data="back_to_main"))
-    await message.reply(f"Брат, постим?\n\n{message.text}", reply_markup=builder.as_markup())
-
-@dp.callback_query(F.data == "post_it")
-async def post_it(callback: types.CallbackQuery):
-    text = callback.message.text.split("\n\n")[1]
-    await bot.send_message(chat_id=CHANNEL_ID, text=text)
-    await callback.answer("Готово")
+@dp.callback_query(F.data == "post")
+async def confirm_post(callback: types.CallbackQuery):
+    text = callback.message.reply_to_message.text
+    await bot.send_message(chat_id=CHANNEL_ID, text=f"✨ **VUŽ / НОВАЕ**\n\n{text}\n\n@vuz_officeall", parse_mode="Markdown")
+    await callback.answer("Опубликовано!")
     await callback.message.delete()
 
-@dp.callback_query(F.data == "back_to_main")
-async def back_to_main(callback: types.CallbackQuery):
-    await callback.message.edit_text("VUŽ 🐍\nВыбери раздел:", reply_markup=get_main_menu())
+@dp.callback_query(F.data == "main")
+async def back_main(callback: types.CallbackQuery):
+    await callback.message.edit_text("Выбирай раздел:", reply_markup=main_menu())
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main()
+    asyncio.run(main())
+
 
 
 
