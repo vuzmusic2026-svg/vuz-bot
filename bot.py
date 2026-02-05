@@ -8,20 +8,21 @@ from aiogram.filters import Command
 # --- ЛАГІРАВАННЕ ---
 logging.basicConfig(level=logging.INFO)
 
-# --- КАНФІГУРАЦЫЯ ---
+# --- КАНФІГУРАЦЫЯ VUŽ ---
 TOKEN = "8549618830:AAEgt90rAH8A0KE2q7A5GMDRgePWJu_UR5w"
-GEMINI_KEY = "УСТАЎ_СВОЙ_КЛЮЧ_GEMINI"
+# Выкарыстоўваем першы ключ, які ты даў
+GEMINI_KEY = "AIzaSyAXgQ9AaGjdc78LeFnnZQlKEJlgPZXPoOo"
 CHANNEL_ID = "@vuz_officeall"
 ADMIN_ID = 5650116892
 
-# Налада Gemini
+# Налада Gemini AI
 genai.configure(api_key=GEMINI_KEY)
 ai_model = genai.GenerativeModel('gemini-pro')
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# --- БАЗА ТРЭКАЎ ---
+# --- БІБЛІЯТЭКА ТРЭКАЎ ---
 
 # Альбом «Лёс» (17 трэкаў)
 LYOS_ALBUM = [
@@ -59,7 +60,7 @@ VUZ_ALBUM = [
     "CQACAgIAAxkBAAOTaYPKntTdt6cO34xf5wGvUCDko7EAAsyOAALKiyBIHLE2M-VdvU44BA"
 ]
 
-# --- КЛАВІЯТУРЫ ---
+# --- ГЛАЎНАЕ МЭНЮ ---
 def get_main_kb():
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="💿 Альбомы", callback_data="albums"))
@@ -68,18 +69,19 @@ def get_main_kb():
     builder.row(types.InlineKeyboardButton(text="🎧 Пляцоўкі", callback_data="platforms"))
     return builder.as_markup()
 
+# --- ЛОГІКА ІІ (GEMINI) ---
 async def ask_gemini(text):
     try:
-        prompt = f"Ты — афіцыйны ІІ-асістэнт музычнага праекта VUŽ. Ты размаўляеш на беларускай мове. Ты добры, шчыры і чалавечны. Адказвай каротка і з любоўю. Пытанне: {text}"
+        prompt = f"Ты — афіцыйны ІІ-асістэнт праекта VUŽ. Ты размаўляеш па-беларуску. Ты добры і шчыры. Адказвай каротка на пытанне: {text}"
         res = ai_model.generate_content(prompt)
         return res.text
     except:
-        return "Брат, музыка заўсёды ў сэрцы. ❤️"
+        return "Брат, я заўсёды тут. Слухай VUŽ. ❤️"
 
 # --- АПРАЦОЎШЧЫКІ ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Вітаем у свеце VUŽ 🐍\nСлухай музыку без абмежаванняў.", reply_markup=get_main_kb())
+    await message.answer("Вітаем у свеце VUŽ 🐍\nСлухай музыку сэрцам.", reply_markup=get_main_kb())
 
 @dp.callback_query(F.data == "albums")
 async def albums_menu(callback: types.CallbackQuery):
@@ -91,21 +93,21 @@ async def albums_menu(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("list_"))
 async def list_tracks(callback: types.CallbackQuery):
-    album = callback.data.split("_")[1]
-    tracks = LYOS_ALBUM if album == "lyos" else VUZ_ALBUM
+    album_code = callback.data.split("_")[1]
+    tracks = LYOS_ALBUM if album_code == "lyos" else VUZ_ALBUM
     builder = InlineKeyboardBuilder()
     for i, _ in enumerate(tracks, 1):
-        builder.add(types.InlineKeyboardButton(text=f"🎵 Трэк {i}", callback_data=f"p_{album}_{i-1}"))
+        builder.add(types.InlineKeyboardButton(text=f"🎵 Трэк {i}", callback_data=f"p_{album_code}_{i-1}"))
     builder.adjust(3)
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="albums"))
-    album_name = "«Лёс»" if album == "lyos" else "«Я ВУЖ»"
-    await callback.message.edit_text(f"Трэкі альбома {album_name}:", reply_markup=builder.as_markup())
+    name = "«Лёс»" if album_code == "lyos" else "«Я ВУЖ»"
+    await callback.message.edit_text(f"Трэкі альбома {name}:", reply_markup=builder.as_markup())
 
 @dp.callback_query(F.data.startswith("p_"))
 async def play_music(callback: types.CallbackQuery):
     _, album, idx = callback.data.split("_")
     fid = LYOS_ALBUM[int(idx)] if album == "lyos" else VUZ_ALBUM[int(idx)]
-    await callback.message.answer_audio(audio=fid, caption="VUŽ — З любоўю. @vuz_officeall")
+    await callback.message.answer_audio(audio=fid, caption="VUŽ — Створана з любоўю. @vuz_officeall")
 
 @dp.callback_query(F.data == "socials")
 async def socials_menu(callback: types.CallbackQuery):
@@ -118,7 +120,7 @@ async def socials_menu(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "platforms")
 async def platforms_menu(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="Яндэкс", url="https://music.yandex.ru/artist/4500355"))
+    builder.row(types.InlineKeyboardButton(text="Яндэкс Музыка", url="https://music.yandex.ru/artist/4500355"))
     builder.row(types.InlineKeyboardButton(text="VK Музыка", url="https://vk.com/artist/3174360383775460208"))
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu"))
     await callback.message.edit_text("Слухай нас на пляцоўках:", reply_markup=builder.as_markup())
@@ -130,13 +132,14 @@ async def video_menu(callback: types.CallbackQuery):
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu"))
     await callback.message.edit_text("Нашы відэа:", reply_markup=builder.as_markup())
 
+# --- УМНАЯ АДМІНКА І ІІ-АДКАЗЫ ---
 @dp.message(F.text)
-async def handle_text(message: types.Message):
+async def handle_msg(message: types.Message):
     if message.from_user.id == ADMIN_ID:
         builder = InlineKeyboardBuilder()
         builder.row(types.InlineKeyboardButton(text="✅ У КАНАЛ", callback_data="post_now"))
-        builder.row(types.InlineKeyboardButton(text="🤖 ІІ ПОСТ", callback_data="ai_post"))
-        await message.reply("Брат, робім пост?", reply_markup=builder.as_markup())
+        builder.row(types.InlineKeyboardButton(text="🤖 ІІ ПАЛЯПШЭННЕ", callback_data="ai_fix"))
+        await message.reply("Брат, што робім з гэтым тэкстам?", reply_markup=builder.as_markup())
     else:
         answer = await ask_gemini(message.text)
         await message.answer(answer)
@@ -145,14 +148,14 @@ async def handle_text(message: types.Message):
 async def post_now(callback: types.CallbackQuery):
     text = callback.message.reply_to_message.text
     await bot.send_message(chat_id=CHANNEL_ID, text=f"✨ **НОВАЕ АД VUŽ**\n\n{text}\n\n🐍 @vuz_officeall", parse_mode="Markdown")
-    await callback.answer("Апублікавана!")
+    await callback.answer("Гатова! Пост у канале.")
 
-@dp.callback_query(F.data == "ai_post")
-async def ai_post(callback: types.CallbackQuery):
+@dp.callback_query(F.data == "ai_fix")
+async def ai_fix(callback: types.CallbackQuery):
     text = callback.message.reply_to_message.text
-    ai_text = await ask_gemini(f"Зрабі гэты тэкст для канала больш душэўным і прыгожым: {text}")
-    await bot.send_message(chat_id=CHANNEL_ID, text=f"✨ **VUŽ / ДУМКІ**\n\n{ai_text}\n\n🐍 @vuz_officeall", parse_mode="Markdown")
-    await callback.answer("ІІ пост гатовы!")
+    ai_text = await ask_gemini(f"Зрабі гэты тэкст для паста ў канал больш прыгожым і душэўным: {text}")
+    await bot.send_message(chat_id=CHANNEL_ID, text=f"✨ **VUŽ / НАТХНЕННЕ**\n\n{ai_text}\n\n🐍 @vuz_officeall", parse_mode="Markdown")
+    await callback.answer("ІІ палепшыў і адправіў!")
 
 @dp.callback_query(F.data == "main_menu")
 async def back_main(callback: types.CallbackQuery):
@@ -164,6 +167,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
