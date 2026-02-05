@@ -1,21 +1,75 @@
-@dp.callback_query(F.data == "confirm_post")
-async def confirm_post(callback: types.CallbackQuery):  # Исправлено тут
-    # Берем текст из сообщения, убирая заголовок
+import asyncio
+import logging
+import google.generativeai as genai
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
+# --- НАСТРОЙКИ ---
+TOKEN = "ТВОЙ_ТОКЕН_ТЕЛЕГРАМ"
+GENAI_API_KEY = "ТВОЙ_КЛЮЧ_GEMINI"
+CHANNEL_ID = "@ТВОЙ_КАНАЛ" # или ID через -100
+
+genai.configure(api_key=GENAI_API_KEY)
+model = genai.GenerativeModel("gemini-pro")
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+# --- КНОПКИ АДМИНКИ ---
+def get_admin_kb():
+    buttons = [
+        [InlineKeyboardButton(text="📝 Сгенерировать пост", callback_query_data="gen_post")],
+        [InlineKeyboardButton(text="📊 Создать опрос", callback_query_data="admin_poll")],
+        [InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_query_data="delete_msg")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def get_post_kb():
+    buttons = [
+        [InlineKeyboardButton(text="✅ Опубликовать", callback_query_data="confirm_post")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_query_data="delete_msg")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+# --- ОБРАБОТКА КОМАНД ---
+@dp.message(Command("start"))
+async def start_cmd(message: Message):
+    await message.answer(f"Привет, Брат! Проект VUŽ на связи. Жми кнопку ниже для управления.", reply_markup=get_admin_kb())
+
+# --- ГЕНЕРАЦИЯ ПОСТА ---
+@dp.callback_query(F.data == "gen_post")
+async def start_gen_post(callback: CallbackQuery):
+    await callback.message.edit_text("🔮 Магия Gemini в процессе... Сочиняю пост про белорусские мифы.")
+   
+    prompt = "Напиши короткий, атмосферный пост для Telegram канала о белорусской мифологии в стиле Dark Folk. Используй мрачные эпитеты, лес, болото. В конце добавь хештег #VUŽ #Беларусь"
+   
     try:
-        post_text = callback.message.text.split("Вариант поста:\n\n")[1]
+        response = model.generate_content(prompt)
+        text = response.text
+        await callback.message.edit_text(f"**Вариант поста:**\n\n{text}", reply_markup=get_post_kb())
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка нейросети: {e}", reply_markup=get_admin_kb())
+
+# --- ПУБЛИКАЦИЯ ---
+@dp.callback_query(F.data == "confirm_post")
+async def confirm_post(callback: CallbackQuery):
+    try:
+        # Извлекаем текст поста (все что после заголовка)
+        post_text = callback.message.text.split("Вариант поста:")[1].strip()
         await bot.send_message(chat_id=CHANNEL_ID, text=post_text)
-        await callback.answer("Готово! Пост в канале.", show_alert=True)
+        await callback.answer("Готово! Пост улетел в канал.", show_alert=True)
         await callback.message.delete()
     except Exception as e:
         await callback.answer(f"Ошибка публикации: {e}", show_alert=True)
 
 @dp.callback_query(F.data == "delete_msg")
-async def delete_msg(callback: types.CallbackQuery):  # Исправлено тут
+async def delete_msg(callback: CallbackQuery):
     await callback.message.delete()
 
 # --- ОПРОСЫ ---
 @dp.callback_query(F.data == "admin_poll")
-async def send_poll(callback: types.CallbackQuery):  # Исправлено тут
+async def send_poll(callback: CallbackQuery):
     try:
         await bot.send_poll(
             chat_id=CHANNEL_ID,
@@ -27,13 +81,14 @@ async def send_poll(callback: types.CallbackQuery):  # Исправлено ту
     except Exception as e:
         await callback.answer(f"Ошибка: {e}")
 
+# --- ЗАПУСК ---
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
-    print("🚀 Шаг 2 активирован. Бот с 'мозгами' в строю!")
+    print("🚀 Шаг 2 активирован. Бот VUŽ в строю!")
     await dp.start_polling(bot)
 
-if name == "main":  # Исправлено тут
-    asyncio.run(main())     # Исправлено тут
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 
