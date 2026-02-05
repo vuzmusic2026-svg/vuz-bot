@@ -116,5 +116,6 @@ async def main():
     print("🚀 Шаг 2 активирован. Бот с 'мозгами' в строю!")
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
+if if name == "main":
     asyncio.run(main())
+
