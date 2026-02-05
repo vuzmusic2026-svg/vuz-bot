@@ -5,21 +5,23 @@ from aiogram.filters import Command
 
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = "8549618830:AAEl_d-iBGFMyIeg_QhQF-AoeHNZnqBXdNY"
+# ТВОЙ САМЫЙ НОВЫЙ ТОКЕН
+TOKEN = "8549618830:AAEgt90rAH8A0KE2q7A5GMDRgePWJu_UR5w"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
-    await message.answer("Брат, VUŽ воскрес! Теперь все четко.")
+    await message.answer("Брат, VUŽ на связи! Теперь всё работает как надо. Погнали делать историю!")
 
 async def main():
-    print("START")
+    print("БОТ ЗАПУЩЕН")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
